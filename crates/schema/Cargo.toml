@@ -1,0 +1,11 @@
+[package]
+name = "schema"
+version = "0.1.0"
+edition.workspace = true
+
+[dependencies]
+chrono.workspace = true
+indexmap.workspace = true
+serde.workspace = true
+serde-untagged.workspace = true
+ustr.workspace = true

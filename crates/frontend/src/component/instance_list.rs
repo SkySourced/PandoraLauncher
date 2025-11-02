@@ -1,0 +1,179 @@
+
+use bridge::handle::BackendHandle;
+use gpui::{prelude::*, *};
+use gpui_component::{
+    button::{Button, ButtonVariants}, h_flex, table::{Column, ColumnSort, Table, TableDelegate}, Sizable
+};
+use schema::loader::Loader;
+
+use crate::{entity::{instance::{InstanceAddedEvent, InstanceEntry, InstanceModifiedEvent, InstanceRemovedEvent}, DataEntities}, root::{self, LauncherRootGlobal}, ui};
+
+pub struct InstanceList {
+    columns: Vec<Column>,
+    items: Vec<InstanceEntry>,
+    backend_handle: BackendHandle,
+    _instance_added_subscription: Subscription,
+    _instance_removed_subscription: Subscription,
+    _instance_modified_subscription: Subscription,
+}
+
+impl InstanceList {
+    pub fn create_table(data: &DataEntities, window: &mut Window, cx: &mut App) -> Entity<Table<Self>> {
+        let instances = data.instances.clone();
+        let items = instances.read(cx).entries.values().map(|i| i.read(cx).clone()).collect();
+        cx.new(|cx| {
+            let _instance_added_subscription = cx.subscribe::<_, InstanceAddedEvent>(&instances, |table: &mut Table<InstanceList>, _, event, cx| {
+                table.delegate_mut().items.insert(0, event.instance.clone());
+                cx.notify();
+            });
+            let _instance_removed_subscription = cx.subscribe::<_, InstanceRemovedEvent>(&instances, |table, _, event, cx| {
+                table.delegate_mut().items.retain(|instance| {
+                    instance.id != event.id
+                });
+                cx.notify();
+            });
+            let _instance_modified_subscription = cx.subscribe::<_, InstanceModifiedEvent>(&instances, |table, _, event, cx| {
+                if let Some(entry) = table.delegate_mut().items.iter_mut().find(|entry| entry.id == event.instance.id) {
+                    *entry = event.instance.clone();
+                    cx.notify();
+                }
+            });
+            let instance_list = Self {
+                columns: vec![
+                    Column::new("controls", "")
+                        .width(150.)
+                        .fixed_left()
+                        .movable(false)
+                        .resizable(false),
+                    Column::new("name", "Name")
+                        .width(150.)
+                        .fixed_left()
+                        .sortable()
+                        .resizable(true),
+                    Column::new("version", "Version")
+                        .width(150.)
+                        .fixed_left()
+                        .sortable()
+                        .resizable(true),
+                    Column::new("loader", "Loader")
+                        .width(150.)
+                        .fixed_left()
+                        .resizable(true),
+                ],
+                items,
+                backend_handle: data.backend_handle.clone(),
+                _instance_added_subscription,
+                _instance_removed_subscription,
+                _instance_modified_subscription,
+            };
+            Table::new(instance_list, window, cx).border(false)
+        })
+    }
+}
+
+impl TableDelegate for InstanceList {
+    fn columns_count(&self, cx: &App) -> usize {
+        self.columns.len()
+    }
+
+    fn rows_count(&self, cx: &App) -> usize {
+        self.items.len()
+    }
+
+    fn column(&self, col_ix: usize, cx: &App) -> &gpui_component::table::Column {
+        &self.columns[col_ix]
+    }
+
+    fn perform_sort(
+            &mut self,
+            col_ix: usize,
+            sort: gpui_component::table::ColumnSort,
+            window: &mut Window,
+            cx: &mut Context<Table<Self>>,
+        ) {
+        if let Some(col) = self.columns.get_mut(col_ix) {
+            match col.key.as_ref() {
+                "name" => self.items.sort_by(|a, b| match sort {
+                    ColumnSort::Descending => lexical_sort::natural_lexical_cmp(&a.name, &b.name).reverse(),
+                    _ => lexical_sort::natural_lexical_cmp(&a.name, &b.name),
+                }),
+                "version" => self.items.sort_by(|a, b| match sort {
+                    ColumnSort::Descending => lexical_sort::natural_lexical_cmp(&a.version, &b.version).reverse(),
+                    _ => lexical_sort::natural_lexical_cmp(&a.version, &b.version),
+                }),
+                _ => {}
+            }
+        }
+    }
+
+    fn render_td(
+        &self,
+        row_ix: usize,
+        col_ix: usize,
+        window: &mut Window,
+        cx: &mut Context<gpui_component::table::Table<Self>>,
+    ) -> impl IntoElement {
+        let item = &self.items[row_ix];
+        if let Some(col) = self.columns.get(col_ix) {
+            match col.key.as_ref() {
+                "name" => {
+                    item.name.clone().into_any_element()
+                },
+                "version" => {
+                    item.version.clone().into_any_element()
+                },
+                "controls" => {
+                    let backend_handle = self.backend_handle.clone();
+                    h_flex()
+                        .size_full()
+                        .gap_2()
+                        .border_r_4()
+                        .child(Button::new("start")
+                            .w(relative(0.5))
+                            .small()
+                            .success()
+                            .label("Start")
+                            .on_click({
+                                let name = item.name.clone();
+                                let id = item.id;
+                                move |_, window, cx| {
+                                    root::start_instance(id, name.clone(), None, &backend_handle, window, cx);
+                                }
+                            })
+                        )
+                        .child(Button::new("view")
+                            .w(relative(0.5))
+                            .small()
+                            .info()
+                            .label("View")
+                            .on_click({
+                                let id = item.id;
+                                move |_, window, cx| {
+                                    cx.update_global::<LauncherRootGlobal, ()>(|global, cx| {
+                                        global.root.update(cx, |launcher_root, cx| {
+                                            launcher_root.ui.update(cx, |ui, cx| {
+                                                ui.switch_page(ui::PageType::InstancePage(id), window, cx);
+                                            });
+                                        });
+                                    });
+                                }
+                            })
+                        )
+                        .into_any_element()
+                },
+                "loader" => {
+                    match item.loader {
+                        Loader::Vanilla => "Vanilla".into_any_element(),
+                        Loader::Fabric => "Fabric".into_any_element(),
+                        Loader::Forge => "Forge".into_any_element(),
+                        Loader::NeoForge => "NeoForge".into_any_element(),
+                    }
+                }
+                _ => "Unknown".into_any_element()
+            }
+        } else {
+            "Unknown".into_any_element()
+        }
+
+    }
+}

@@ -1,0 +1,24 @@
+[package]
+name = "frontend"
+version = "0.1.0"
+edition.workspace = true
+
+[dependencies]
+backtrace.workspace = true
+chrono.workspace = true
+ftree.workspace = true
+gpui.workspace = true
+gpui-component.workspace = true
+image.workspace = true
+lexical-sort.workspace = true
+lru.workspace = true
+mini-moka.workspace = true
+rust-embed.workspace = true
+rustc-hash.workspace = true
+sanitize-filename.workspace = true
+anyhow.workspace = true
+bridge.workspace = true
+schema.workspace = true
+tokio.workspace = true
+once_cell.workspace = true
+ustr.workspace = true

@@ -1,0 +1,11 @@
+[package]
+name = "bridge"
+version = "0.1.0"
+edition.workspace = true
+
+[dependencies]
+atomic-time.workspace = true
+atomic_enum.workspace = true
+schema.workspace = true
+ustr.workspace = true
+tokio.workspace = true
