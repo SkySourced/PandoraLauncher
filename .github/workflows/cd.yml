@@ -59,6 +59,7 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
+          name: PandoraLauncher-${{ matrix.platform.os_name }}${{ matrix.platform.binext }}
           path: PandoraLauncher-${{ matrix.platform.os_name }}${{ matrix.platform.binext }}
   release:
     needs: [build]
