@@ -45,7 +45,7 @@ impl LauncherRoot {
 }
 
 impl Render for LauncherRoot {
-    fn render(&mut self, _window: &mut Window, _cx: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, window: &mut Window, _cx: &mut Context<Self>) -> impl IntoElement {
         if let Some(message) = &*self.deadlock_message.read().unwrap() {
             let purple = Hsla {
                 h: 0.8333333333,
@@ -62,9 +62,12 @@ impl Render for LauncherRoot {
             return v_flex().size_full().bg(gpui::red()).child("Backend has abruptly shutdown").into_any_element();
         }
 
-        div()
+        v_flex()
             .size_full()
             .font_family(MAIN_FONT)
+            .when(matches!(window.window_decorations(), Decorations::Client { .. }), |this| {
+                this.child(gpui_component::TitleBar::new().child("Pandora"))
+            })
             .child(self.ui.clone())
             .into_any_element()
     }

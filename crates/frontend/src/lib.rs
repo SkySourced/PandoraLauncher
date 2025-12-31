@@ -111,6 +111,7 @@ pub fn start(
                     title: Some(SharedString::new_static("Pandora")),
                     ..Default::default()
                 }),
+                window_decorations: Some(WindowDecorations::Server),
                 ..Default::default()
             },
             |window, cx| {
@@ -224,6 +225,7 @@ pub fn start(
                                             title: Some(SharedString::new_static("Minecraft Game Output")),
                                             ..Default::default()
                                         }),
+                                        window_decorations: Some(WindowDecorations::Server),
                                         ..Default::default()
                                     };
                                     _ = cx.open_window(options, |window, cx| {
