@@ -4,7 +4,7 @@ Work in progress
 
 ## Features
 - Instance management
-- Cross-instance file syncing (options, saves, etc.)
+- Cross-instance file syncing (options, saves, etc.) (https://youtu.be/wb5EY2VsMKg)
 - Mod deduplication when installed through launcher (using hard links)
 - Secure account credential management using platform keyrings
 - Custom game output window
